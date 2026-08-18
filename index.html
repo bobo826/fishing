@@ -25,6 +25,7 @@
       </div>
       <button class="hud-btn" id="shopBtn">🏪 商店</button>
       <button class="hud-btn" id="bucketBtn">🧺 鱼篓</button>
+      <button class="hud-btn" id="fullscreenBtn" title="切换全屏">⛶ 全屏</button>
       <button class="mini-btn reset" id="resetBtn" title="清空存档重新开始">重置</button>
     </header>
 
@@ -36,11 +37,7 @@
       <div class="zone zone-deep">深水区</div>
       <div class="zone zone-shallow">浅水区</div>
 
-      <!-- 抛竿力度条 -->
-      <div class="power-meter hidden" id="powerMeter">
-        <span class="power-label">力度</span>
-        <div class="power-track"><div class="power-fill" id="powerFill"></div></div>
-      </div>
+      <!-- 抛竿力度条已移除，改为点击抛竿 -->
 
       <!-- 遛鱼面板 -->
       <div class="fight-hud hidden" id="fightHud">
@@ -62,8 +59,8 @@
         </div>
       </div>
 
-      <div class="status" id="status">移动鼠标瞄准 · 按住左键蓄力 · 松开抛竿</div>
-      <div class="controls-hint">🖱️ 左右移动瞄准 &nbsp;·&nbsp; 按住左键蓄力、松开抛竿 &nbsp;·&nbsp; 滚轮 ↑ 收线 / ↓ 放线</div>
+      <div class="status" id="status">移动鼠标瞄准 · 点击抛竿</div>
+      <div class="controls-hint">🖱️ 移动瞄准 &nbsp;·&nbsp; 点击抛竿 &nbsp;·&nbsp; 滚轮 ↑ 收线 / ↓ 放线</div>
     </main>
 
   </div>

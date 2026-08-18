@@ -16,18 +16,16 @@
 
   // 节奏常量（整体放慢，保证体验）
   const TICK_MS = 180;      // 遛鱼时鱼发力的间隔
-  const CHARGE_RATE = 38;   // 蓄力速度（0→100 约 2.6 秒）
   const FLY_MS = 900;       // 抛竿飞行时长
-  const BITE_MS = 2200;     // 扬竿窗口
   const ROD_LEN = 110;      // 鱼竿像素长度
 
   let state = clone(DEFAULT_STATE);
   let pendingCatch = null;
 
   let fishing = {
-    phase: 'idle',      // idle | charge | flying | waiting | bite | play
+    phase: 'idle',      // idle | flying | waiting | play
     aimX: 0.5,          // 鼠标左右瞄准（0..1）
-    power: 0,           // 蓄力（0..100）
+    aimDist: 50,        // 瞄准落点距离（0..100）
     dist: 50,           // 鱼离岸距离（0..100）
     tension: 50,        // 鱼线张力（0..100）
     target: null,       // 当前目标鱼
@@ -38,9 +36,7 @@
     flyTo: { x: 0, y: 0 },
     flyStart: 0,
     waitTimer: null,
-    biteTimer: null,
     tickTimer: null,
-    biteDeadline: 0,
   };
 
   // 布局（Canvas）
@@ -253,11 +249,11 @@
 
     // 目标点（鱼线末端）
     let target = null;
-    if (fishing.phase === 'charge') {
-      target = pointToScreen(fishing.aimX, fishing.power);
+    if (fishing.phase === 'idle') {
+      target = pointToScreen(fishing.aimX, fishing.aimDist);
     } else if (fishing.phase === 'flying') {
       target = { x: fishing.fly.x, y: fishing.fly.y, s: depthToScale(fishing.castDist / 100) };
-    } else if (fishing.phase === 'waiting' || fishing.phase === 'bite') {
+    } else if (fishing.phase === 'waiting') {
       target = pointToScreen(fishing.aimX, fishing.castDist);
     } else if (fishing.phase === 'play') {
       target = pointToScreen(fishing.fishX, fishing.dist);
@@ -278,10 +274,10 @@
     if (target) drawLine(ctx, tip, target);
 
     // 浮标 / 鱼 / 落点预览
-    if (fishing.phase === 'charge') {
+    if (fishing.phase === 'idle') {
       drawPreview(ctx, target);
-    } else if (fishing.phase === 'flying' || fishing.phase === 'waiting' || fishing.phase === 'bite') {
-      drawBobber(ctx, target, fishing.phase === 'bite');
+    } else if (fishing.phase === 'flying' || fishing.phase === 'waiting') {
+      drawBobber(ctx, target, false);
     } else if (fishing.phase === 'play') {
       drawFish(ctx, target, fishing.target);
     }
@@ -450,25 +446,37 @@
   }
 
   function drawRod(ctx, base, tip) {
+    // 抽象化鱼竿：纤细、带轻微弯曲的简约线条
     const dx = tip.x - base.x, dy = tip.y - base.y;
     const len = Math.hypot(dx, dy) || 1;
     const ux = dx / len, uy = dy / len;
-    const px = -uy, py = ux;
-    const wb = 6, wt = 2;
-    ctx.beginPath();
-    ctx.moveTo(base.x + px * wb, base.y + py * wb);
-    ctx.lineTo(tip.x + px * wt, tip.y + py * wt);
-    ctx.lineTo(tip.x - px * wt, tip.y - py * wt);
-    ctx.lineTo(base.x - px * wb, base.y - py * wb);
-    ctx.closePath();
+    const nx = -uy, ny = ux;
+    // 控制点：向后微弯，更显轻盈
+    const cx = (base.x + tip.x) / 2 - nx * len * 0.08;
+    const cy = (base.y + tip.y) / 2 - ny * len * 0.08;
+
+    // 竿身（细线，近粗远细的渐变）
     const g = ctx.createLinearGradient(base.x, base.y, tip.x, tip.y);
-    g.addColorStop(0, '#6b4018');
-    g.addColorStop(1, '#e2ad68');
-    ctx.fillStyle = g;
-    ctx.fill();
+    g.addColorStop(0, 'rgba(255,255,255,0.98)');
+    g.addColorStop(1, 'rgba(255,255,255,0.6)');
+    ctx.strokeStyle = g;
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 3.5;
     ctx.beginPath();
-    ctx.arc(tip.x, tip.y, 2, 0, Math.PI * 2);
+    ctx.moveTo(base.x, base.y);
+    ctx.quadraticCurveTo(cx, cy, tip.x, tip.y);
+    ctx.stroke();
+
+    // 竿尖亮点
     ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(tip.x, tip.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 手柄：简洁圆形支点
+    ctx.fillStyle = 'rgba(15, 40, 60, 0.85)';
+    ctx.beginPath();
+    ctx.arc(base.x, base.y, 6, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -625,7 +633,7 @@
 
   function currentTargetScreen() {
     if (fishing.phase === 'play') return pointToScreen(fishing.fishX, fishing.dist);
-    if (fishing.phase === 'waiting' || fishing.phase === 'bite') return pointToScreen(fishing.aimX, fishing.castDist);
+    if (fishing.phase === 'waiting') return pointToScreen(fishing.aimX, fishing.castDist);
     return null;
   }
 
@@ -637,7 +645,7 @@
   // ================= 钓鱼流程 =================
   function setStatus(text) { $('#status').textContent = text; }
 
-  function beginCharge() {
+  function cast() {
     if (fishing.phase !== 'idle') return;
     const bait = getBait();
     if ((state.baits[bait.id] || 0) <= 0) {
@@ -645,21 +653,11 @@
       openShop();
       return;
     }
-    fishing.power = 0;
-    fishing.phase = 'charge';
-    $('#powerMeter').classList.remove('hidden');
-    setStatus('松开鼠标抛竿！');
-    renderScene();
-  }
-
-  function cast() {
-    if (fishing.phase !== 'charge') return;
-    const bait = getBait();
     state.baits[bait.id] -= 1;
     save();
 
     fishing.aimX = clamp(fishing.aimX, 0.08, 0.92);
-    fishing.castDist = clamp(fishing.power, 5, 100);
+    fishing.castDist = clamp(fishing.aimDist, 5, 100);
     fishing.dist = fishing.castDist;
 
     const base = { x: L.w * 0.5, y: L.shoreY };
@@ -671,7 +669,6 @@
     fishing.flyTo = to;
     fishing.flyStart = performance.now();
     fishing.phase = 'flying';
-    $('#powerMeter').classList.add('hidden');
     setStatus('抛竿中……');
     renderHUD();
     renderScene();
@@ -692,27 +689,20 @@
   }
 
   function onBite() {
-    fishing.phase = 'bite';
-    setStatus('浮标猛地一沉！快速上滚滚轮扬竿！');
+    // 鱼儿上钩：直接进入遛鱼界面，无需再次点击扬竿
     const bp = pointToScreen(fishing.aimX, fishing.castDist);
-    spawnSplash(bp.x, bp.y, bp.s, 1.4);
-    fishing.biteDeadline = performance.now() + BITE_MS;
-    fishing.biteTimer = setTimeout(() => escape('扬竿太慢，鱼跑掉了……'), BITE_MS);
-    renderScene();
+    spawnSplash(bp.x, bp.y, bp.s, 1.6);
+    startPlay();
   }
 
-  function hookSet() {
-    if (fishing.phase !== 'bite') return;
-    clearTimeout(fishing.biteTimer);
-    const remain = clamp(fishing.biteDeadline - performance.now(), 0, BITE_MS);
-    const reaction = remain / BITE_MS; // 1=极快，0=将将赶上
+  function startPlay() {
     const zone = fishing.castDist < 50 ? 'shallow' : 'deep';
     const fish = pickFish(zone);
 
     fishing.target = fish;
     fishing.dist = fishing.castDist;
     fishing.fishX = fishing.aimX;
-    fishing.tension = clamp(55 - reaction * 20, 30, 55);
+    fishing.tension = 45;
     fishing.phase = 'play';
 
     $('#fightFish').textContent = fish.emoji;
@@ -768,16 +758,13 @@
 
   function resetFishing() {
     clearTimeout(fishing.waitTimer);
-    clearTimeout(fishing.biteTimer);
     clearInterval(fishing.tickTimer);
     fishing.phase = 'idle';
     fishing.target = null;
-    fishing.power = 0;
     fishing.dist = 50;
     fishing.tension = 50;
     $('#fightHud').classList.add('hidden');
-    $('#powerMeter').classList.add('hidden');
-    setStatus('移动鼠标瞄准 · 按住左键蓄力 · 松开抛竿');
+    setStatus('移动鼠标瞄准 · 点击抛竿');
     renderScene();
   }
 
@@ -986,42 +973,50 @@
     toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
   }
 
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen();
+    }
+  }
+  function refreshFullscreenBtn() {
+    const btn = $('#fullscreenBtn');
+    if (btn) btn.textContent = document.fullscreenElement ? '⛶ 退出全屏' : '⛶ 全屏';
+  }
+
   // ================= 事件绑定 =================
   function bindEvents() {
     const scene = $('#scene');
 
     scene.addEventListener('mousedown', (e) => {
       if (e.button !== 0) return;
-      beginCharge();
-    });
-
-    window.addEventListener('mouseup', (e) => {
-      if (e.button !== 0) return;
-      if (fishing.phase === 'charge') cast();
+      if (fishing.phase === 'idle') cast();
     });
 
     scene.addEventListener('mousemove', (e) => {
+      if (fishing.phase !== 'idle') return;
       const r = scene.getBoundingClientRect();
-      fishing.aimX = (e.clientX - r.left) / r.width;
-      if (fishing.phase === 'idle' || fishing.phase === 'charge') renderScene();
+      fishing.aimX = clamp((e.clientX - r.left) / r.width, 0.06, 0.94);
+      // 越靠上抛得越远（深水），越靠下抛得越近（浅水）
+      const ty = clamp((e.clientY - r.top) / r.height, 0.08, 0.82);
+      fishing.aimDist = clamp(Math.round((1 - ty) * 100), 8, 92);
+      renderScene();
     });
 
     scene.addEventListener('wheel', (e) => {
       e.preventDefault();
-      if (fishing.phase === 'bite') {
-        if (e.deltaY < 0) hookSet();
-        return;
-      }
       if (fishing.phase === 'play') {
         reel(e.deltaY < 0 ? 1 : -1);
-        return;
       }
     }, { passive: false });
 
     window.addEventListener('resize', () => { layout(); renderScene(); });
+    document.addEventListener('fullscreenchange', refreshFullscreenBtn);
 
     $('#baitSwitchBtn').addEventListener('click', cycleBait);
     $('#resetBtn').addEventListener('click', resetGame);
+    $('#fullscreenBtn').addEventListener('click', toggleFullscreen);
 
     $('#shopBtn').addEventListener('click', openShop);
     $('#bucketBtn').addEventListener('click', openBucket);
@@ -1062,12 +1057,8 @@
   let lastT = 0;
   function loop() {
     const now = performance.now();
-    const dt = lastT ? (now - lastT) / 1000 : 0;
+    const dt = lastT ? Math.min(0.1, (now - lastT) / 1000) : 0;
     lastT = now;
-    if (fishing.phase === 'charge') {
-      fishing.power = Math.min(100, fishing.power + dt * CHARGE_RATE);
-      $('#powerFill').style.width = fishing.power + '%';
-    }
     if (fishing.phase === 'flying') updateFly();
     updateParticles(dt);
     renderScene();
