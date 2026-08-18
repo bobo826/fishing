@@ -1,0 +1,689 @@
+:root {
+  --sky-top: #79c7f0;
+  --sky-bottom: #d7f0fc;
+  --water-top: #2d9bd8;
+  --water-bottom: #0b5e8a;
+  --card: #ffffff;
+  --ink: #1f2937;
+  --muted: #6b7280;
+  --accent: #f59e0b;
+  --accent-dark: #d97706;
+  --danger: #ef4444;
+  --radius: 16px;
+  --shadow: 0 8px 24px rgba(15, 40, 60, 0.18);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  background: linear-gradient(160deg, #0f2c44, #12466e);
+  color: var(--ink);
+}
+
+body { display: flex; justify-content: center; }
+
+.app {
+  position: relative;
+  width: 100%;
+  max-width: 760px;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: #0b3d5c;
+}
+
+/* ---------- 顶部状态栏（浮动于池塘之上） ---------- */
+.hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, rgba(8, 32, 48, 0.82), rgba(8, 32, 48, 0));
+  color: #fff;
+  z-index: 20;
+  flex-wrap: wrap;
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  backdrop-filter: blur(3px);
+}
+
+.stat-icon { font-size: 16px; }
+
+.hud .mini-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.hud .mini-btn:hover { background: rgba(255, 255, 255, 0.3); }
+
+.hud-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  backdrop-filter: blur(3px);
+  transition: background 0.15s;
+}
+.hud-btn:hover { background: rgba(255, 255, 255, 0.3); }
+
+.hud .reset {
+  margin-left: auto;
+  background: rgba(239, 68, 68, 0.35);
+}
+.hud .reset:hover { background: rgba(239, 68, 68, 0.6); }
+
+/* ---------- 场景（全屏池塘，Canvas 渲染） ---------- */
+.scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: crosshair;
+  user-select: none;
+}
+#scene canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.sky {
+  position: absolute;
+  inset: 0 0 74% 0;
+  background: linear-gradient(to bottom, #0d2b44 0%, #2f6f96 55%, #8ecbe8 82%, #d7f0fb 100%);
+}
+.sky::after {
+  content: "";
+  position: absolute;
+  top: 16px;
+  right: 42px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff7d6, #ffd76a);
+  box-shadow: 0 0 46px 12px rgba(255, 210, 110, 0.45);
+}
+
+.water {
+  position: absolute;
+  inset: 12% 0 26% 0;
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(255, 255, 255, 0.12), transparent 60%),
+    linear-gradient(to bottom, #082f4a 0%, #0f4f74 38%, #1e78a8 70%, #57b0d8 100%);
+  overflow: hidden;
+  border-top: 2px solid rgba(255, 255, 255, 0.35);
+}
+.water::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5), transparent);
+}
+.water::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(2px 2px at 22% 28%, rgba(255, 255, 255, 0.4), transparent 60%),
+    radial-gradient(2px 2px at 58% 52%, rgba(255, 255, 255, 0.34), transparent 60%),
+    radial-gradient(2px 2px at 38% 72%, rgba(255, 255, 255, 0.3), transparent 60%),
+    radial-gradient(2px 2px at 78% 38%, rgba(255, 255, 255, 0.34), transparent 60%);
+  animation: sparkle 4s ease-in-out infinite;
+}
+@keyframes sparkle {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* 水波涟漪（透视椭圆，增强立体感） */
+.ripple {
+  position: absolute;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  z-index: 1;
+  animation: ripplePulse 3.4s ease-in-out infinite;
+}
+.ripple.r1 { top: 18%; left: 20%; width: 120px; height: 120px; }
+.ripple.r2 { top: 36%; right: 14%; width: 170px; height: 170px; animation-delay: 1.1s; }
+.ripple.r3 { top: 52%; left: 56%; width: 96px; height: 96px; animation-delay: 2.2s; }
+@keyframes ripplePulse {
+  0%, 100% { opacity: 0.22; transform: scaleY(0.32) scale(0.9); }
+  50% { opacity: 0.65; transform: scaleY(0.32) scale(1.06); }
+}
+
+/* 岸边与木排 */
+.shore {
+  position: absolute;
+  inset: 74% 0 0 0;
+  background: linear-gradient(to bottom, #d7bd85 0%, #b8995f 38%, #8a6f42 100%);
+  border-top: 3px solid rgba(255, 255, 255, 0.4);
+}
+.dock {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 40%;
+  height: 26%;
+  z-index: 4;
+  clip-path: polygon(15% 0, 85% 0, 100% 100%, 0 100%);
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.12), transparent 30%, transparent 70%, rgba(0, 0, 0, 0.18)),
+    repeating-linear-gradient(to bottom, #b57d45 0 15px, #8f5d31 15px 18px);
+  box-shadow: 0 -5px 18px rgba(0, 0, 0, 0.3);
+}
+.dock::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: inherit;
+  border-left: 3px solid #6f4725;
+  border-right: 3px solid #6f4725;
+}
+
+.zone {
+  position: absolute;
+  left: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.28);
+  z-index: 2;
+}
+.zone-shallow { top: 56%; }
+.zone-deep { top: 15%; }
+
+.zone-boundary {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 2px dashed rgba(255, 255, 255, 0.35);
+  z-index: 1;
+}
+
+/* 鱼线 */
+.line-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+#linePath {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.92);
+  stroke-width: 2;
+  stroke-linecap: round;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+
+/* 鱼竿 */
+.rod {
+  position: absolute;
+  left: 50%;
+  width: 9px;
+  height: 110px;
+  transform-origin: 50% 100%;
+  border-radius: 6px;
+  background: linear-gradient(to top, #5f3a14, #9c6227 55%, #e2ad68);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  z-index: 6;
+}
+.rod::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 8px;
+  border-radius: 3px;
+  background: #f3f3f3;
+}
+
+/* 浮标 */
+.bobber {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  margin-top: -10px;
+  border-radius: 50%;
+  background: linear-gradient(#ef4444 45%, #ffffff 45%);
+  border: 2px solid #7f1d1d;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  z-index: 7;
+}
+.bobber::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  animation: ripple 1.4s ease-out infinite;
+}
+.bobber.waiting { animation: bob 1.4s ease-in-out infinite; }
+.bobber.bite { animation: bite 0.2s linear infinite; }
+
+@keyframes ripple {
+  0%   { transform: scale(0.6); opacity: 0.8; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes bite {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(7px); }
+}
+
+/* 水中的鱼（近大远小，立体透视） */
+.fish-actor {
+  position: absolute;
+  z-index: 7;
+  transform: translate(-50%, -50%);
+}
+.fish-sprite {
+  display: block;
+  font-size: 42px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+  animation: struggle 0.4s ease-in-out infinite;
+}
+@keyframes struggle {
+  0%, 100% { transform: translateX(0) rotate(-10deg); }
+  50% { transform: translateX(4px) rotate(10deg); }
+}
+
+/* 落点预览 */
+.cast-preview {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  margin-left: -23px;
+  margin-top: -23px;
+  border: 2px dashed rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  z-index: 6;
+  animation: previewPulse 1s ease-in-out infinite;
+}
+@keyframes previewPulse {
+  0%, 100% { opacity: 0.6; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+/* 力度条 */
+.power-meter {
+  position: absolute;
+  left: 50%;
+  bottom: 28%;
+  transform: translateX(-50%);
+  width: 46%;
+  max-width: 260px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 8;
+}
+.power-label {
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+}
+.power-track {
+  flex: 1;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+}
+.power-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #4ade80, #facc15, #f87171);
+  transition: width 0.05s linear;
+}
+
+/* 遛鱼 HUD */
+.fight-hud {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  max-width: 420px;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 14px;
+  padding: 10px 14px;
+  z-index: 8;
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+.fight-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.fight-fish { font-size: 24px; animation: struggle 0.4s ease-in-out infinite; }
+.fight-name { font-size: 14px; font-weight: 800; }
+.fight-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.fight-label {
+  font-size: 11px;
+  font-weight: 700;
+  width: 26px;
+  text-align: center;
+  flex-shrink: 0;
+  color: #d1fae5;
+}
+.fight-label.warn { color: #fca5a5; }
+
+.tension-bar {
+  position: relative;
+  flex: 1;
+  height: 16px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f87171 0%, #fbbf24 30%, #4ade80 50%, #fbbf24 70%, #f87171 100%);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+}
+.tension-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 30%;
+  width: 40%;
+  background: rgba(255, 255, 255, 0.35);
+}
+.tension-needle {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 20px;
+  border-radius: 3px;
+  background: #fff;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+  left: 50%;
+  transition: left 0.1s linear;
+}
+
+.dist-bar {
+  flex: 1;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  overflow: hidden;
+}
+.dist-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #34d399, #22c55e);
+  transition: width 0.12s linear;
+}
+
+.status {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  transform: translateX(-50%);
+  z-index: 8;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+  white-space: nowrap;
+  max-width: 92%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.controls-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  transform: translateX(-50%);
+  z-index: 8;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+}
+
+/* ---------- 弹窗（商店 / 鱼篓） ---------- */
+.modal-card.wide {
+  width: min(560px, 100%);
+  max-height: 82vh;
+  overflow: hidden;
+  text-align: left;
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.modal-head h2 { font-size: 18px; color: #14527e; }
+.modal-close {
+  border: none;
+  background: #eef2f6;
+  color: #41627d;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+}
+.modal-close:hover { background: #dbe6ee; }
+.modal-body {
+  max-height: 56vh;
+  overflow-y: auto;
+  padding: 2px 2px 8px;
+}
+
+.hidden { display: none !important; }
+
+.panel-section { margin-bottom: 18px; }
+.panel-title { font-size: 16px; margin-bottom: 10px; color: #14527e; }
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.card {
+  border: 1px solid #e5edf3;
+  border-radius: 14px;
+  padding: 12px;
+  background: #f8fbfd;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(20, 82, 126, 0.12); }
+.card.equipped { border-color: var(--accent); background: #fff8ec; }
+
+.card-head { display: flex; align-items: center; gap: 8px; }
+.card-emoji { font-size: 26px; }
+.card-name { font-size: 15px; font-weight: 800; }
+.card-badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e5edf3;
+  color: #41627d;
+}
+.card-desc { font-size: 12px; color: var(--muted); line-height: 1.4; min-height: 32px; }
+.card-meta { font-size: 12px; color: #41627d; font-weight: 600; }
+
+.btn {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.12s, transform 0.12s;
+}
+.btn:hover:not(:disabled) { filter: brightness(1.05); }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.primary { background: linear-gradient(135deg, #fbbf24, #d97706); color: #7c2d12; }
+.btn.ghost { background: #e5edf3; color: #14527e; }
+.btn.danger { background: #fee2e2; color: #b91c1c; }
+
+.card-actions { display: flex; gap: 6px; }
+.card-actions .btn { flex: 1; }
+
+/* ---------- 鱼篓 ---------- */
+.bucket-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.bucket-summary { font-size: 13px; color: #41627d; font-weight: 600; }
+.sell-all { white-space: nowrap; }
+
+.bucket-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-bottom: 1px dashed #e5edf3;
+}
+.bucket-row:last-child { border-bottom: none; }
+.bucket-emoji { font-size: 28px; }
+.bucket-info { flex: 1; min-width: 0; }
+.bucket-name { font-size: 14px; font-weight: 800; }
+.bucket-sub { font-size: 12px; color: var(--muted); }
+.bucket-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+.empty {
+  text-align: center;
+  color: #9ca3af;
+  padding: 30px 0;
+  font-size: 14px;
+}
+
+/* ---------- 弹窗 ---------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  padding: 20px;
+}
+.modal-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 26px 28px;
+  text-align: center;
+  width: min(320px, 100%);
+  box-shadow: var(--shadow);
+  animation: pop 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+@keyframes pop {
+  from { transform: scale(0.8); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.modal-fish { font-size: 72px; line-height: 1; margin-bottom: 8px; }
+.modal-rarity {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 3px 12px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+.modal-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+.modal-desc { font-size: 14px; color: var(--muted); margin-bottom: 18px; }
+.modal-card .btn { width: 100%; padding: 12px; font-size: 15px; }
+
+/* ---------- 轻提示 ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(15, 40, 60, 0.92);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+  z-index: 40;
+  max-width: 90vw;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---------- 弹窗补充 ---------- */
+.modal-tip {
+  font-size: 12px;
+  color: #d97706;
+  margin: 4px 0 14px;
+  min-height: 16px;
+}
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.modal-actions .btn { width: 100%; padding: 12px; font-size: 15px; }
+.btn.green { background: linear-gradient(135deg, #4ade80, #16a34a); color: #052e16; }

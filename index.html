@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>钓鱼达人 · MVP</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- 顶部状态栏 -->
+    <header class="hud">
+      <div class="stat coins" title="鱼币">
+        <span class="stat-icon">🪙</span>
+        <span id="coins">100</span>
+      </div>
+      <div class="stat bait" title="当前鱼饵">
+        <span class="stat-icon" id="baitEmoji">🪱</span>
+        <span id="baitStat">普通鱼饵 ×10</span>
+        <button class="mini-btn" id="baitSwitchBtn" title="切换鱼饵">切换</button>
+      </div>
+      <div class="stat gear" title="当前渔具">
+        <span class="stat-icon">🎣</span>
+        <span id="gearName">木鱼竿</span>
+      </div>
+      <button class="hud-btn" id="shopBtn">🏪 商店</button>
+      <button class="hud-btn" id="bucketBtn">🧺 鱼篓</button>
+      <button class="mini-btn reset" id="resetBtn" title="清空存档重新开始">重置</button>
+    </header>
+
+    <!-- 钓鱼场景（Canvas 渲染池塘） -->
+    <main class="scene" id="scene">
+      <canvas id="pond"></canvas>
+
+      <!-- 分区标签 -->
+      <div class="zone zone-deep">深水区</div>
+      <div class="zone zone-shallow">浅水区</div>
+
+      <!-- 抛竿力度条 -->
+      <div class="power-meter hidden" id="powerMeter">
+        <span class="power-label">力度</span>
+        <div class="power-track"><div class="power-fill" id="powerFill"></div></div>
+      </div>
+
+      <!-- 遛鱼面板 -->
+      <div class="fight-hud hidden" id="fightHud">
+        <div class="fight-top">
+          <span class="fight-fish" id="fightFish">🐟</span>
+          <span class="fight-name" id="fightName">鱼</span>
+        </div>
+        <div class="fight-row">
+          <span class="fight-label">松</span>
+          <div class="tension-bar">
+            <div class="tension-zone"></div>
+            <div class="tension-needle" id="tensionNeedle"></div>
+          </div>
+          <span class="fight-label warn">断</span>
+        </div>
+        <div class="fight-row">
+          <span class="fight-label">距离</span>
+          <div class="dist-bar"><div class="dist-fill" id="distFill"></div></div>
+        </div>
+      </div>
+
+      <div class="status" id="status">移动鼠标瞄准 · 按住左键蓄力 · 松开抛竿</div>
+      <div class="controls-hint">🖱️ 左右移动瞄准 &nbsp;·&nbsp; 按住左键蓄力、松开抛竿 &nbsp;·&nbsp; 滚轮 ↑ 收线 / ↓ 放线</div>
+    </main>
+
+  </div>
+
+  <!-- 商店弹窗 -->
+  <div class="modal hidden" id="shopModal">
+    <div class="modal-card wide">
+      <div class="modal-head"><h2>🏪 商店</h2><button class="modal-close" data-close="shopModal">✕</button></div>
+      <div class="modal-body">
+        <div class="panel-section">
+          <h3 class="panel-title">🪱 鱼饵</h3>
+          <div class="card-grid" id="baitShop"></div>
+        </div>
+        <div class="panel-section">
+          <h3 class="panel-title">🎣 渔具</h3>
+          <div class="card-grid" id="gearShop"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 鱼篓弹窗 -->
+  <div class="modal hidden" id="bucketModal">
+    <div class="modal-card wide">
+      <div class="modal-head"><h2>🧺 鱼篓</h2><button class="modal-close" data-close="bucketModal">✕</button></div>
+      <div class="bucket-head">
+        <div class="bucket-summary" id="bucketSummary">鱼篓空空如也</div>
+        <button class="btn sell-all" id="sellAllBtn" disabled>全部卖出</button>
+      </div>
+      <div class="modal-body"><div id="bucketList"></div></div>
+    </div>
+  </div>
+
+  <!-- 钓到鱼弹窗 -->
+  <div class="modal hidden" id="catchModal">
+    <div class="modal-card">
+      <div class="modal-fish" id="catchIcon">🐟</div>
+      <div class="modal-rarity" id="catchRarity">常见</div>
+      <div class="modal-title" id="catchName">鱼</div>
+      <div class="modal-desc" id="catchDesc"></div>
+      <div class="modal-tip" id="catchTip"></div>
+      <div class="modal-actions" id="catchActions"></div>
+    </div>
+  </div>
+
+  <!-- 轻提示 -->
+  <div class="toast" id="toast"></div>
+
+  <script src="data.js"></script>
+  <script src="game2d.js"></script>
+</body>
+</html>
