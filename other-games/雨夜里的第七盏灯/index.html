@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>雨夜里的第七盏灯</title>
+	<style>
+		:root {
+			--bg: #f3efe6;
+			--paper: #fffaf0;
+			--ink: #1f2933;
+			--muted: #5f6c7b;
+			--accent: #0f766e;
+			--alert: #b42318;
+			--ok: #0f5132;
+			--gold: #b0893d;
+			--line: #d7cfbf;
+		}
+
+		* { box-sizing: border-box; }
+
+		body {
+			margin: 0;
+			font-family: "Noto Serif SC", "Source Han Serif SC", "Microsoft YaHei", serif;
+			color: var(--ink);
+			background:
+				radial-gradient(circle at 8% 10%, #f8f3e7 0%, transparent 34%),
+				radial-gradient(circle at 92% 0%, #e8efe9 0%, transparent 30%),
+				linear-gradient(180deg, #f3efe6 0%, #ece5d5 100%);
+			min-height: 100vh;
+			padding: 24px;
+		}
+
+		.board {
+			max-width: 1050px;
+			margin: 0 auto;
+			border: 1px solid var(--line);
+			border-radius: 16px;
+			overflow: hidden;
+			box-shadow: 0 14px 40px rgba(20, 35, 50, 0.14);
+			background: linear-gradient(180deg, #fffdf7 0%, #faf4e8 100%);
+		}
+
+		.topbar {
+			padding: 16px 20px;
+			border-bottom: 1px solid var(--line);
+			display: flex;
+			justify-content: space-between;
+			align-items: flex-start;
+			background: rgba(176, 137, 61, 0.08);
+			gap: 14px;
+			flex-wrap: wrap;
+		}
+
+		.title {
+			margin: 0;
+			font-size: 24px;
+			letter-spacing: 1px;
+		}
+
+		.subtitle {
+			margin: 4px 0 0;
+			color: var(--muted);
+			font-size: 14px;
+		}
+
+		.phase {
+			font-weight: 700;
+			color: var(--accent);
+			padding: 8px 12px;
+			border: 1px solid #9cc6c1;
+			border-radius: 999px;
+			background: #edf8f7;
+		}
+
+		.status {
+			display: flex;
+			gap: 8px;
+			flex-wrap: wrap;
+		}
+
+		.pill {
+			font-size: 13px;
+			font-weight: 700;
+			padding: 7px 10px;
+			border: 1px solid #ccbfa5;
+			border-radius: 999px;
+			background: #fff8e9;
+		}
+
+		.case-switch {
+			display: flex;
+			gap: 8px;
+			align-items: center;
+			margin-top: 10px;
+		}
+
+		.case-switch .select {
+			min-width: 250px;
+		}
+
+		.layout {
+			display: grid;
+			grid-template-columns: 1.7fr 1fr;
+			gap: 0;
+		}
+
+		.left {
+			border-right: 1px solid var(--line);
+			padding: 20px;
+		}
+
+		.right {
+			padding: 20px;
+			background: #fffcf4;
+		}
+
+		.narration {
+			border: 1px solid var(--line);
+			border-radius: 12px;
+			background: var(--paper);
+			padding: 14px;
+			line-height: 1.7;
+			min-height: 110px;
+		}
+
+		.characters {
+			margin-top: 16px;
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 12px;
+		}
+
+		.card {
+			border: 1px solid var(--line);
+			border-radius: 12px;
+			padding: 12px;
+			background: #fff;
+			cursor: pointer;
+			transition: transform .18s ease, box-shadow .18s ease, border-color .2s ease;
+		}
+
+		.card:hover {
+			transform: translateY(-3px);
+			box-shadow: 0 8px 20px rgba(30, 40, 50, 0.12);
+		}
+
+		.card.active {
+			border-color: var(--accent);
+			box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.15);
+		}
+
+		.portrait {
+			height: 96px;
+			border-radius: 10px;
+			display: grid;
+			place-items: center;
+			font-size: 28px;
+			font-weight: 700;
+			color: #fff;
+			letter-spacing: 1px;
+			margin-bottom: 8px;
+			position: relative;
+			overflow: hidden;
+		}
+
+		.portrait::after {
+			content: "";
+			position: absolute;
+			inset: 0;
+			background: repeating-linear-gradient(
+				135deg,
+				rgba(255, 255, 255, .08),
+				rgba(255, 255, 255, .08) 7px,
+				transparent 7px,
+				transparent 14px
+			);
+			pointer-events: none;
+		}
+
+		.lin { background: linear-gradient(135deg, #405a76, #7a93ad); }
+		.xu { background: linear-gradient(135deg, #4a4f57, #7d868f); }
+		.ye { background: linear-gradient(135deg, #6a5c3b, #b39d6a); }
+		.qin { background: linear-gradient(135deg, #28536b, #3f88a6); }
+		.han { background: linear-gradient(135deg, #6c3a2f, #a05c47); }
+		.tao { background: linear-gradient(135deg, #3d4f3d, #5d7b5f); }
+
+		.name {
+			margin: 0;
+			font-size: 17px;
+		}
+
+		.role {
+			margin: 2px 0 8px;
+			color: var(--muted);
+			font-size: 13px;
+		}
+
+		.tags {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 6px;
+			margin-bottom: 8px;
+		}
+
+		.tag {
+			font-size: 12px;
+			padding: 2px 7px;
+			border-radius: 999px;
+			background: #f1efe9;
+			border: 1px solid #e6decc;
+			color: #514a3d;
+		}
+
+		.meter {
+			height: 8px;
+			width: 100%;
+			background: #ebe6da;
+			border-radius: 999px;
+			overflow: hidden;
+			margin-bottom: 4px;
+		}
+
+		.meter > span {
+			display: block;
+			height: 100%;
+			width: 10%;
+			background: linear-gradient(90deg, #f6cf57, #cf6a3f);
+			transition: width .25s ease;
+		}
+
+		.small {
+			font-size: 12px;
+			color: var(--muted);
+		}
+
+		.panel {
+			margin-top: 16px;
+			border: 1px solid var(--line);
+			border-radius: 12px;
+			background: #fff;
+			padding: 12px;
+		}
+
+		.panel h3 {
+			margin: 0 0 8px;
+			font-size: 15px;
+		}
+
+		.panel h4 {
+			margin: 8px 0 8px;
+			font-size: 14px;
+		}
+
+		.actions {
+			display: grid;
+			gap: 8px;
+		}
+
+		button {
+			width: 100%;
+			border: 1px solid #c6bdab;
+			border-radius: 10px;
+			padding: 8px 10px;
+			background: linear-gradient(180deg, #fffdf8, #f3ecdd);
+			cursor: pointer;
+			text-align: left;
+			color: var(--ink);
+		}
+
+		button:hover { border-color: #a59a82; }
+		button:disabled { opacity: .55; cursor: not-allowed; }
+
+		button.primary {
+			background: linear-gradient(180deg, #e9f8f6, #d9efec);
+			border-color: #92b9b3;
+		}
+
+		.log {
+			margin: 0;
+			padding-left: 16px;
+			line-height: 1.6;
+			color: #3c4752;
+			font-size: 14px;
+			min-height: 100px;
+		}
+
+		.hint {
+			margin-top: 10px;
+			color: var(--alert);
+			font-size: 13px;
+			font-weight: 700;
+		}
+
+		.row {
+			display: flex;
+			gap: 10px;
+			align-items: center;
+			flex-wrap: wrap;
+		}
+
+		.choice {
+			display: block;
+			font-size: 14px;
+			line-height: 1.5;
+			margin: 6px 0;
+		}
+
+		.choice input {
+			margin-right: 6px;
+		}
+
+		.select {
+			width: 100%;
+			border: 1px solid #c6bdab;
+			border-radius: 8px;
+			padding: 7px;
+			background: #fff;
+		}
+
+		.result {
+			margin-top: 12px;
+			padding: 10px;
+			border-radius: 10px;
+			border: 1px dashed #ccbfa5;
+			background: #fffdf6;
+			line-height: 1.7;
+		}
+
+		.result.ok {
+			border-color: #92b9b3;
+			background: #eef9f8;
+		}
+
+		.result.fail {
+			border-color: #d39f98;
+			background: #fff2f1;
+		}
+
+		.timeline {
+			font-size: 13px;
+			color: #4c5967;
+			margin: 0;
+			padding-left: 16px;
+			line-height: 1.6;
+		}
+
+		@media (max-width: 900px) {
+			.layout { grid-template-columns: 1fr; }
+			.left { border-right: 0; border-bottom: 1px solid var(--line); }
+			.characters { grid-template-columns: 1fr; }
+		}
+	</style>
+</head>
+<body>
+	<main class="board">
+		<header class="topbar">
+			<div>
+				<h1 class="title">雨夜里的第七盏灯</h1>
+				<p class="subtitle">交互推理游戏：调查现场、盘问人物、提交指认</p>
+				<div class="case-switch">
+					<select class="select" id="caseSelect"></select>
+					<button id="loadCaseBtn" class="primary">载入案件</button>
+				</div>
+			</div>
+			<div class="status">
+				<div class="phase" id="phaseText">阶段：初步询问</div>
+				<div class="pill" id="timeText">时间：21:10</div>
+				<div class="pill" id="turnText">行动剩余：10</div>
+			</div>
+		</header>
+
+		<section class="layout">
+			<div class="left">
+				<div class="narration" id="narration"></div>
+
+				<div class="characters" id="characters"></div>
+
+				<section class="panel">
+					<h3>问话记录</h3>
+					<ul class="log" id="log"></ul>
+					<div class="hint" id="hint"></div>
+				</section>
+			</div>
+
+			<aside class="right">
+				<section class="panel">
+					<h3>现场调查</h3>
+					<p class="small">每次调查会消耗1次行动，部分新问话需先解锁物证。</p>
+					<div class="actions" id="sceneActions"></div>
+				</section>
+
+				<section class="panel">
+					<h3 id="focusName">先选择一个人物</h3>
+					<p class="small" id="focusDesc">点击左侧角色卡后，这里会显示可执行问话。</p>
+					<div class="actions" id="actions"></div>
+				</section>
+
+				<section class="panel">
+					<h3>已确认线索</h3>
+					<ul class="log" id="clues"></ul>
+				</section>
+
+				<section class="panel">
+					<h3>案件时间线</h3>
+					<ul class="timeline" id="timeline"></ul>
+				</section>
+
+				<section class="panel">
+					<h3>最终指认</h3>
+					<p class="small">收集至少6条线索后可提交。你也可以在行动耗尽后强制提交。</p>
+
+					<h4>你认为凶手是：</h4>
+					<div id="suspectChoices"></div>
+
+					<h4>你确认的作案链路：</h4>
+					<div id="chainChoices"></div>
+
+					<h4>主要动机：</h4>
+					<select class="select" id="motiveSelect"></select>
+
+					<div class="row">
+						<button id="accuseBtn" class="primary" disabled>提交指认</button>
+						<button id="restartBtn">重新开始</button>
+					</div>
+					<div class="result" id="resultBox">尚未提交指认。</div>
+				</section>
+			</aside>
+		</section>
+	</main>
+
+	<script src="./data.js"></script>
+	<script src="./game.js"></script>
+</body>
+</html>
